@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#EFFAFB" />
+  <title>Home Food Storage Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; background: #dde2dd; }
+    body {
+      font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+      color: #1A1C1A;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { font-family: inherit; }
+    .fst-noscroll::-webkit-scrollbar { display: none; }
+    ::-webkit-scrollbar { width: 0; height: 0; }
+
+    @keyframes fst-fade { from { transform: translateY(0); } to { transform: translateY(0); } }
+    @keyframes fst-slide-up { from { transform: translateY(18px); } to { transform: translateY(0); } }
+    @keyframes fst-slide-down { from { transform: translateY(-18px); } to { transform: translateY(0); } }
+    @keyframes fst-pop { 0% { transform: scale(0.97); } 60% { transform: scale(1.01); } 100% { transform: scale(1); } }
+
+    .fst-card { transition: transform .12s ease, box-shadow .12s ease; }
+    .fst-card:active { transform: scale(0.985); }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React + Babel -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+  <!-- Firebase (compat build = works without a bundler) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <!-- Shared UI (reused, unchanged, from the phone mock) -->
+  <script type="text/babel" src="theme.jsx"></script>
+  <script type="text/babel" src="data.jsx"></script>
+  <script type="text/babel" src="icons.jsx"></script>
+  <script type="text/babel" src="components.jsx"></script>
+  <script type="text/babel" src="screens.jsx"></script>
+  <script type="text/babel" src="overlays.jsx"></script>
+
+  <!-- Web-only: Firebase config, password, real-date override, Firestore layer -->
+  <script type="text/babel" src="web-config.jsx"></script>
+  <!-- Web-only: password gate + Firestore-wired responsive app root -->
+  <script type="text/babel" src="web-app.jsx"></script>
+</body>
+</html>

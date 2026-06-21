@@ -1,0 +1,54 @@
+# ── System & OS ─────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.lnk
+
+# ── Editor & IDE ────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user
+*.swp
+*.swo
+*~
+
+# ── Logs & temp files ───────────────────────────────────────
+*.log
+*.tmp
+*.temp
+npm-debug.log*
+
+# ── Node / Expo (the React Native app — NOT needed for hosting) ──
+node_modules/
+FoodStorageTracker/node_modules/
+FoodStorageTracker/.expo/
+FoodStorageTracker/dist/
+FoodStorageTracker/web-build/
+
+# ── Android build output ────────────────────────────────────
+FoodStorageTracker/android/build/
+FoodStorageTracker/android/app/build/
+FoodStorageTracker/android/.gradle/
+FoodStorageTracker/android/.cxx/
+FoodStorageTracker/android/local.properties
+*.apk
+*.aab
+
+# ── Generic build dirs ──────────────────────────────────────
+dist/
+build/
+.cache/
+
+# ── Environment & secrets ───────────────────────────────────
+.env
+.env.*
+*.pem
+
+# ── Backup files ────────────────────────────────────────────
+*.bak
+*.old
+*.orig
+
+# ── React Native app (its own separate git repo; not needed to host the website) ──
+FoodStorageTracker/

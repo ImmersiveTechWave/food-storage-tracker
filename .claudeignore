@@ -1,0 +1,37 @@
+# ── System & OS ─────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.lnk
+
+# ── Editor & IDE ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user
+*.swp
+*.swo
+*~
+
+# ── Logs & temp files ────────────────────────────────────────
+*.log
+*.tmp
+*.temp
+npm-debug.log*
+
+# ── If you ever add a build step ─────────────────────────────
+node_modules/
+dist/
+build/
+.cache/
+
+# ── Environment & secrets ────────────────────────────────────
+.env
+.env.*
+*.key
+*.pem
+
+# ── Backup files ─────────────────────────────────────────────
+*.bak
+*.old
+*.orig
