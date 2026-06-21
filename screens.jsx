@@ -169,7 +169,7 @@ function NameEntry({ onSet }) {
 }
 
 // ── Add / Edit item sheet ───────────────────────────────────
-function AddEditSheet({ locKey, editing, onClose, onSave, userName }) {
+function AddEditSheet({ locKey, editing, onClose, onSave, userName, allowRestock }) {
   const loc = LOCATIONS[locKey];
   const [name, setName] = useState(editing ? editing.name : '');
   const [category, setCategory] = useState(editing ? editing.category : '');
@@ -178,6 +178,7 @@ function AddEditSheet({ locKey, editing, onClose, onSave, userName }) {
   const [unit, setUnit] = useState(editing ? editing.unit : 'pieces');
   const [dateAdded, setDateAdded] = useState(editing ? editing.dateAdded : isoToday());
   const [expiry, setExpiry] = useState(editing ? editing.expiry : '');
+  const [autoRestock, setAutoRestock] = useState(editing && editing.autoRestock ? true : false);
   const [tried, setTried] = useState(false);
 
   const valid = name.trim() && category;
@@ -186,6 +187,7 @@ function AddEditSheet({ locKey, editing, onClose, onSave, userName }) {
     if (!valid) return;
     onSave({
       ...(editing || {}),
+      ...(allowRestock ? { autoRestock } : {}),
       name: name.trim(), category, description: description.trim(),
       qty: parseFloat(qty) || 0, unit, dateAdded, expiry,
       location: locKey,
@@ -228,6 +230,20 @@ function AddEditSheet({ locKey, editing, onClose, onSave, userName }) {
               <Field label="Expiry date"><DateField value={expiry} onChange={setExpiry} accent={loc.accent} allowClear /></Field>
             </div>
           </div>
+          {allowRestock && (
+            <div onClick={() => setAutoRestock(v => !v)} style={{
+              display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14, cursor: 'pointer',
+              background: NEUTRAL.surfaceDim,
+            }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 700, color: NEUTRAL.onSurface }}>Auto-Restock</div>
+                <div style={{ fontSize: 12.5, color: NEUTRAL.onSurfaceVar, marginTop: 2 }}>Add to shopping list when fully used</div>
+              </div>
+              <div style={{ width: 44, height: 26, borderRadius: 13, flexShrink: 0, position: 'relative', background: autoRestock ? loc.accent : NEUTRAL.outline, transition: 'background .2s' }}>
+                <div style={{ position: 'absolute', top: 3, left: autoRestock ? 21 : 3, width: 20, height: 20, borderRadius: '50%', background: NEUTRAL.surface, boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transition: 'left .2s' }} />
+              </div>
+            </div>
+          )}
         </div>
         <div style={{ padding: '14px 18px', paddingBottom: 18, display: 'flex', gap: 12, borderTop: `1px solid ${NEUTRAL.outlineSoft}` }}>
           <button onClick={onClose} style={ghostBtn()}>Cancel</button>
@@ -294,6 +310,14 @@ function DetailSheet({ item, onClose, onEdit, onDelete, onUse, onMove }) {
             <Row label="Quantity" value={`${item.qty} ${item.unit}`} />
             <Row label="Date added" value={fmtDate(item.dateAdded)} />
             <Row label="Added by" value={item.addedBy} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: `1px solid ${NEUTRAL.outlineSoft}`, gap: 16 }}>
+              <span style={{ fontSize: 13.5, color: NEUTRAL.onSurfaceVar }}>Auto-Restock</span>
+              <span style={{ fontSize: 13.5, fontWeight: 700, borderRadius: 8, padding: '4px 10px',
+                background: item.autoRestock ? EXPIRY.fine.bg : NEUTRAL.surfaceDim,
+                color: item.autoRestock ? EXPIRY.fine.text : NEUTRAL.onSurfaceVar }}>
+                {item.autoRestock ? '↺ Enabled' : 'Off'}
+              </span>
+            </div>
           </div>
 
           {/* actions */}

@@ -109,6 +109,9 @@ function ItemCard({ item, loc, onClick, justAdded }) {
         <div style={{ marginTop: 7, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <CategoryBadge loc={loc}>{item.category}</CategoryBadge>
           <ExpiryPill item={item} />
+          {item.autoRestock && (
+            <span style={{ background: EXPIRY.fine.bg, color: EXPIRY.fine.text, borderRadius: 6, padding: '3px 7px', fontSize: 11, fontWeight: 700 }}>↺ Restock</span>
+          )}
         </div>
         <div style={{ marginTop: 9, display: 'flex', alignItems: 'center', gap: 6 }}>
           <Avatar name={item.addedBy} size={18} />

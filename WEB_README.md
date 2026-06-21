@@ -66,7 +66,7 @@ auto-generated key is **restricted to the Android app**. Fix in 2 minutes:
 > until it also signs in. Choose based on whether you want to touch the phone app.
 
 > These rules use a wildcard so they cover **both** the inventory (`items`) and the shopping
-> list (`shopping`) collections under the household.
+> list (`toBuy`) collections under the household — the same paths the Android app uses.
 
 **Option A — leave rules open (phone app keeps working as-is).** The website still requires
 login, so casual visitors can't use it; the database itself stays open like today.

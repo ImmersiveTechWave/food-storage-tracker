@@ -236,15 +236,17 @@ function Splash({ tint, text }) {
   );
 }
 
-// ── "To Buy" shopping list ────────────────────────────────────────────────────
+// ── "Shopping List" (To Buy) ──────────────────────────────────────────────────
+// Mirrors the mobile app: collection households/home/toBuy, items have
+// { name, note, location?, checked, addedBy, dateAdded, autoRestockFrom? }.
 // A synthetic "location" so the existing header/nav styling works for it too.
 const TOBUY = {
-  key: 'tobuy', label: 'To Buy', icon: '🛒',
-  accent: '#3F6F52', accentDark: '#2C4F3A', onAccent: '#FFFFFF',
-  page: '#EFF5F0', container: '#DBEADF', onContainer: '#234032', navTint: '#E2EFE6',
+  key: 'tobuy', label: 'Shopping List', navLabel: 'Shopping', icon: '🛒',
+  accent: '#2E8B4F', accentDark: '#1F6B3A', onAccent: '#FFFFFF',
+  page: '#F0F9F4', container: '#D3EDDE', onContainer: '#1F6B3A', navTint: '#D3EDDE',
 };
 
-// Bottom nav for phone — the 4 locations plus To Buy (the shared BottomNav only
+// Bottom nav for phone — the 4 locations plus Shopping (the shared BottomNav only
 // knows the 4 locations, so the web app uses its own).
 function WebBottomNav({ active, onChange }) {
   const tabs = [...LOCATION_ORDER, 'tobuy'];
@@ -263,7 +265,7 @@ function WebBottomNav({ active, onChange }) {
               background: on ? l.navTint : 'transparent', transition: 'background 0.2s', fontSize: 19,
               filter: on ? 'none' : 'grayscale(0.35)', opacity: on ? 1 : 0.78,
             }}>{l.icon}</div>
-            <span style={{ fontSize: 11.5, fontWeight: on ? 700 : 500, color: on ? l.accentDark : NEUTRAL.onSurfaceVar }}>{l.label}</span>
+            <span style={{ fontSize: 11.5, fontWeight: on ? 700 : 500, color: on ? l.accentDark : NEUTRAL.onSurfaceVar }}>{l.navLabel || l.label}</span>
           </button>
         );
       })}
@@ -271,104 +273,119 @@ function WebBottomNav({ active, onChange }) {
   );
 }
 
-// One row in the shopping list.
-function BuyRow({ item, onBought, onEdit, onDelete }) {
-  const accent = TOBUY.accent;
+// One row in the shopping list — checkbox toggles "got it", X deletes.
+function BuyRow({ item, onToggle, onDelete }) {
+  const checked = !!item.checked;
+  const tagLoc = item.location && LOCATIONS[item.location];
   return (
-    <div className="fst-card" style={{
-      display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 16,
-      background: NEUTRAL.surface, border: `1px solid ${NEUTRAL.outlineSoft}`,
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12, padding: 14, borderRadius: 14,
+      background: NEUTRAL.surface, opacity: checked ? 0.55 : 1,
     }}>
-      <button onClick={onBought} title="Got it" style={{
-        width: 26, height: 26, borderRadius: '50%', flexShrink: 0, cursor: 'pointer', padding: 0,
-        border: `2px solid ${accent}`, background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: accent,
-      }}><Icon name="check" size={15} stroke={3} /></button>
-      <div onClick={onEdit} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
-        <div style={{ fontSize: 15.5, fontWeight: 600, color: NEUTRAL.onSurface, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</div>
-        <div style={{ fontSize: 12.5, color: NEUTRAL.onSurfaceVar, marginTop: 2 }}>
-          {item.qty ? `${item.qty} ${item.unit || ''}`.trim() : ''}{item.qty && item.note ? ' · ' : ''}{item.note || (!item.qty ? `Added by ${item.addedBy}` : '')}
-        </div>
+      <button onClick={onToggle} title="Got it" style={{
+        width: 24, height: 24, borderRadius: 7, flexShrink: 0, cursor: 'pointer', padding: 0,
+        border: `2px solid ${checked ? TOBUY.accent : NEUTRAL.outline}`, background: checked ? TOBUY.accent : 'transparent',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+      }}>{checked && <Icon name="check" size={14} stroke={2.8} />}</button>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 15, fontWeight: 600, color: checked ? NEUTRAL.onSurfaceVar : NEUTRAL.onSurface, textDecoration: checked ? 'line-through' : 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</div>
+        {item.note ? <div style={{ fontSize: 12.5, color: NEUTRAL.onSurfaceVar, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.note}</div> : null}
       </div>
-      <button onClick={onDelete} title="Remove" style={iconBtn(NEUTRAL.onSurfaceVar)}><Icon name="trash" size={18} /></button>
+      {tagLoc && (
+        <span style={{ flexShrink: 0, padding: '4px 8px', borderRadius: 8, background: tagLoc.container, color: tagLoc.onContainer, fontSize: 11.5, fontWeight: 600, whiteSpace: 'nowrap' }}>
+          {tagLoc.icon} {tagLoc.label}
+        </span>
+      )}
+      <button onClick={onDelete} title="Remove" style={{
+        width: 28, height: 28, borderRadius: 14, flexShrink: 0, cursor: 'pointer', border: 'none',
+        background: NEUTRAL.surfaceDim, color: NEUTRAL.onSurfaceVar, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}><Icon name="close" size={16} /></button>
     </div>
   );
 }
 
-// The shopping list view (replaces the inventory body when tab === 'tobuy').
-function ToBuyView({ buyItems, userName, onBought, onEdit, onDelete, onAdd, isDesktop }) {
+// The shopping list view — pending items, then a "Done" section with Clear all.
+function ToBuyView({ buyItems, onToggle, onDelete, onClearChecked, onAdd, isDesktop }) {
+  const pending = buyItems.filter(i => !i.checked).sort((a, b) => (b.dateAdded || '').localeCompare(a.dateAdded || ''));
+  const done = buyItems.filter(i => i.checked).sort((a, b) => (b.dateAdded || '').localeCompare(a.dateAdded || ''));
+
   if (buyItems.length === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 32px', color: NEUTRAL.onSurfaceVar }}>
-        <div style={{ fontSize: 46, marginBottom: 12 }}>🛒</div>
-        <div style={{ fontSize: 17, fontWeight: 700, color: NEUTRAL.onSurface }}>Your shopping list is empty</div>
-        <div style={{ fontSize: 14, marginTop: 6, lineHeight: 1.5 }}>Add things you need to restock — both of you<br />see the list update live.</div>
+        <div style={{ fontSize: 48, marginBottom: 8 }}>🛒</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: NEUTRAL.onSurface }}>Nothing to buy</div>
+        <div style={{ fontSize: 14, marginTop: 6, lineHeight: 1.5 }}>Add items manually or enable Auto-Restock<br />on any storage item.</div>
         <button onClick={onAdd} style={{
-          marginTop: 20, border: 'none', cursor: 'pointer', font: 'inherit', fontSize: 15, fontWeight: 700,
+          marginTop: 18, border: 'none', cursor: 'pointer', font: 'inherit', fontSize: 15, fontWeight: 700,
           padding: '13px 22px', borderRadius: 100, background: TOBUY.accent, color: TOBUY.onAccent,
           display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: `0 8px 22px ${TOBUY.accent}55`,
-        }}><Icon name="add" size={20} stroke={2.4} /> Add to list</button>
+        }}><Icon name="add" size={18} stroke={2.4} /> Add item</button>
       </div>
     );
   }
-  const sorted = [...buyItems].sort((a, b) => (b.dateAdded || '').localeCompare(a.dateAdded || '') || a.name.localeCompare(b.name));
+
+  const listStyle = {
+    display: isDesktop ? 'grid' : 'flex', flexDirection: 'column', gap: 8,
+    gridTemplateColumns: isDesktop ? 'repeat(auto-fill, minmax(300px, 1fr))' : undefined, alignItems: isDesktop ? 'start' : undefined,
+  };
   return (
-    <div style={{
-      padding: isDesktop ? '10px 28px 40px' : '8px 16px 110px',
-      display: isDesktop ? 'grid' : 'flex', flexDirection: 'column', gap: 10,
-      gridTemplateColumns: isDesktop ? 'repeat(auto-fill, minmax(300px, 1fr))' : undefined, alignItems: isDesktop ? 'start' : undefined,
-    }}>
-      {sorted.map(it => (
-        <BuyRow key={it.id} item={it} onBought={() => onBought(it)} onEdit={() => onEdit(it)} onDelete={() => onDelete(it)} />
-      ))}
+    <div style={{ padding: isDesktop ? '10px 28px 40px' : '8px 16px 110px' }}>
+      <div style={listStyle}>
+        {pending.map(it => <BuyRow key={it.id} item={it} onToggle={() => onToggle(it)} onDelete={() => onDelete(it)} />)}
+      </div>
+      {done.length > 0 && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 4px 6px' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: NEUTRAL.onSurfaceVar, textTransform: 'uppercase', letterSpacing: 0.6 }}>Done</span>
+            <button onClick={onClearChecked} style={{ border: 'none', background: 'none', cursor: 'pointer', font: 'inherit', fontSize: 13, fontWeight: 600, color: TOBUY.accent }}>Clear all</button>
+          </div>
+          <div style={listStyle}>
+            {done.map(it => <BuyRow key={it.id} item={it} onToggle={() => onToggle(it)} onDelete={() => onDelete(it)} />)}
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-// Add / edit a shopping-list item.
-function AddBuySheet({ editing, userName, onClose, onSave }) {
+// Add a shopping-list item — name, note, optional "goes in" location.
+function AddBuySheet({ onClose, onAdd }) {
   const accent = TOBUY.accent;
-  const [name, setName] = uS(editing ? editing.name : '');
-  const [qty, setQty] = uS(editing && editing.qty ? String(editing.qty) : '');
-  const [unit, setUnit] = uS(editing && editing.unit ? editing.unit : 'pieces');
-  const [note, setNote] = uS(editing ? (editing.note || '') : '');
-  const [tried, setTried] = uS(false);
+  const [name, setName] = uS('');
+  const [note, setNote] = uS('');
+  const [location, setLocation] = uS('');
   const valid = name.trim();
-  const save = () => {
-    setTried(true);
-    if (!valid) return;
-    onSave({
-      ...(editing || {}),
-      name: name.trim(),
-      qty: qty ? parseFloat(qty) || null : null,
-      unit: qty ? unit : '',
-      note: note.trim(),
-      addedBy: editing ? editing.addedBy : userName,
-      dateAdded: editing ? editing.dateAdded : isoToday(),
-    });
-  };
+  const save = () => { if (!valid) return; onAdd(name, note, location); onClose(); };
   return (
     <Scrim onClose={onClose}>
-      <Sheet onClose={onClose} accent={accent} title={editing ? 'Edit item' : 'Add to shopping list'}>
+      <Sheet onClose={onClose} accent={accent} title="Add to shopping list">
         <div style={{ overflowY: 'auto', padding: '6px 18px 4px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <Field label="What to buy" required>
-            <TextField value={name} onChange={setName} placeholder="e.g. Milk" accent={accent} invalid={tried && !valid} autoFocus={!editing} />
-          </Field>
-          <Field label="Quantity (optional)">
-            <div style={{ display: 'flex', gap: 10 }}>
-              <input value={qty} onChange={e => setQty(e.target.value.replace(/[^0-9.]/g, ''))} inputMode="decimal" placeholder="—"
-                style={{ width: 96, flexShrink: 0, fontWeight: 600, boxSizing: 'border-box', font: 'inherit', fontSize: 15.5, padding: '12px 14px', borderRadius: 13, color: NEUTRAL.onSurface, border: `1.5px solid ${NEUTRAL.outlineSoft}`, background: NEUTRAL.bg, outline: 'none' }}
-                onFocus={e => e.target.style.borderColor = accent} onBlur={e => e.target.style.borderColor = NEUTRAL.outlineSoft} />
-              <div style={{ flex: 1 }}><SelectField value={unit} onChange={setUnit} options={UNITS} accent={accent} /></div>
-            </div>
+          <Field label="Item name" required>
+            <TextField value={name} onChange={setName} placeholder="e.g. Milk, Chicken..." accent={accent} autoFocus />
           </Field>
           <Field label="Note (optional)">
-            <TextField value={note} onChange={setNote} placeholder="e.g. the lactose-free one" accent={accent} multiline />
+            <TextField value={note} onChange={setNote} placeholder="Brand, quantity, etc." accent={accent} />
+          </Field>
+          <Field label="Goes in (optional)">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {LOCATION_ORDER.map(k => {
+                const l = LOCATIONS[k]; const on = location === k;
+                return (
+                  <button key={k} type="button" onClick={() => setLocation(on ? '' : k)} style={{
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '9px 13px', borderRadius: 100, cursor: 'pointer', font: 'inherit',
+                    fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap',
+                    border: `1.5px solid ${on ? l.accent : NEUTRAL.outline}`,
+                    background: on ? l.container : NEUTRAL.surface, color: on ? l.onContainer : NEUTRAL.onSurface,
+                  }}>{l.icon} {l.label}</button>
+                );
+              })}
+            </div>
           </Field>
         </div>
         <div style={{ padding: '14px 18px 18px', display: 'flex', gap: 12, borderTop: `1px solid ${NEUTRAL.outlineSoft}` }}>
           <button onClick={onClose} style={ghostBtn()}>Cancel</button>
-          <button onClick={save} style={{ ...fillBtn(accent), opacity: valid ? 1 : 0.55 }}>
-            <Icon name="check" size={19} stroke={2.4} /> {editing ? 'Save changes' : 'Add to list'}
+          <button onClick={save} style={{ ...fillBtn(accent), opacity: valid ? 1 : 0.5 }}>
+            <Icon name="add" size={18} stroke={2.4} /> Add item
           </button>
         </div>
       </Sheet>
@@ -457,6 +474,15 @@ function App() {
       }
     } catch (e) { showToast('Could not save — check connection'); }
   };
+  // Auto-restock: drop an item onto the shopping list when it's fully used.
+  const addToBuyFromItem = async item => {
+    await window.FST.saveBuy({
+      name: item.name,
+      note: `Auto-restock from ${LOCATIONS[item.location] ? LOCATIONS[item.location].label : item.location}`,
+      checked: false, addedBy: 'Auto-restock', dateAdded: isoToday(),
+      location: item.location, autoRestockFrom: item.name,
+    });
+  };
   const reallyDelete = async item => {
     setConfirm(null); setDetail(null);
     try {
@@ -469,6 +495,7 @@ function App() {
     try {
       await window.FST.deleteItem(item.id);
       showToast(`“${item.name}” marked as used`, 'Undo', async () => { await window.FST.saveItem(item); setToast(null); });
+      if (item.autoRestock) await addToBuyFromItem(item);   // fully used → restock
     } catch (e) { showToast('Could not update — check connection'); }
   };
   const doMove = async (item, target, category) => {
@@ -480,20 +507,27 @@ function App() {
     } catch (e) { showToast('Could not move — check connection'); }
   };
 
-  // ── shopping list mutations ──
-  const saveBuy = async data => {
-    setBuySheet(null);
+  // ── shopping list mutations (match mobile AppContext) ──
+  const addToBuyItem = async (name, note, location) => {
     try {
-      await window.FST.saveBuy(data);
-      showToast(data.id ? 'List updated' : 'Added to shopping list');
+      await window.FST.saveBuy({
+        name: name.trim(), note: (note || '').trim(), checked: false,
+        addedBy: userName, dateAdded: isoToday(), location: location || '',
+      });
+      showToast(`“${name.trim()}” added to shopping list`);
     } catch (e) { showToast('Could not save — check connection'); }
   };
-  const removeBuy = async (item, boughtMsg) => {
-    try {
-      await window.FST.deleteBuy(item.id);
-      showToast(boughtMsg ? `Got “${item.name}” ✓` : `Removed “${item.name}”`, 'Undo',
-        async () => { await window.FST.saveBuy(item); setToast(null); });
-    } catch (e) { showToast('Could not update — check connection'); }
+  const toggleBuyChecked = async item => {
+    try { await window.FST.saveBuy({ ...item, checked: !item.checked }); }
+    catch (e) { showToast('Could not update — check connection'); }
+  };
+  const removeBuyItem = async item => {
+    try { await window.FST.deleteBuy(item.id); }
+    catch (e) { showToast('Could not update — check connection'); }
+  };
+  const clearCheckedToBuy = async () => {
+    try { await Promise.all(buyItems.filter(i => i.checked).map(i => window.FST.deleteBuy(i.id))); }
+    catch (e) { showToast('Could not update — check connection'); }
   };
 
   uE(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0; }, [tab]);
@@ -511,7 +545,7 @@ function App() {
   const overlays = (
     <>
       <Toast toast={toast} onAction={() => { toast.onAction && toast.onAction(); }} onClear={() => setToast(null)} />
-      {sheet && <AddEditSheet locKey={tab} editing={sheet.mode === 'edit' ? sheet.item : null} userName={userName} onClose={() => setSheet(null)} onSave={saveItem} />}
+      {sheet && <AddEditSheet locKey={sheet.mode === 'edit' ? sheet.item.location : tab} editing={sheet.mode === 'edit' ? sheet.item : null} userName={userName} allowRestock onClose={() => setSheet(null)} onSave={saveItem} />}
       {detail && <DetailSheet item={items.find(i => i.id === detail.id) || detail} onClose={() => setDetail(null)}
         onEdit={it => { setDetail(null); setSheet({ mode: 'edit', item: it }); }}
         onMove={it => { setDetail(null); setMove(it); }}
@@ -530,7 +564,7 @@ function App() {
       )}
       {search && <SearchOverlay items={items} onClose={() => setSearch(false)} onPick={it => { setSearch(false); setTab(it.location); setDetail(it); }} />}
       {notif && <NotificationsPanel items={items} onClose={() => setNotif(false)} onPick={it => { setNotif(false); setTab(it.location); setDetail(it); }} />}
-      {buySheet && <AddBuySheet editing={buySheet && buySheet.id ? buySheet : null} userName={userName} onClose={() => setBuySheet(null)} onSave={saveBuy} />}
+      {buySheet && <AddBuySheet onClose={() => setBuySheet(false)} onAdd={addToBuyItem} />}
     </>
   );
 
@@ -546,13 +580,14 @@ function App() {
           : <div style={{ padding: '2px 16px 110px', display: 'flex', flexDirection: 'column', gap: 10 }}>{cards}</div>;
 
   // ── Body + header helpers that switch between inventory and the shopping list ──
-  const addClick = isBuy ? () => setBuySheet({}) : () => setSheet({ mode: 'add' });
+  const buyPending = buyItems.filter(i => !i.checked).length;
+  const addClick = isBuy ? () => setBuySheet(true) : () => setSheet({ mode: 'add' });
   const buyView = (
-    <ToBuyView buyItems={buyItems} userName={userName} isDesktop={isDesktop}
-      onBought={it => removeBuy(it, true)} onEdit={it => setBuySheet(it)} onDelete={it => removeBuy(it, false)} onAdd={() => setBuySheet({})} />
+    <ToBuyView buyItems={buyItems} isDesktop={isDesktop}
+      onToggle={toggleBuyChecked} onDelete={removeBuyItem} onClearChecked={clearCheckedToBuy} onAdd={() => setBuySheet(true)} />
   );
   const headerSub = isBuy
-    ? `${buyItems.length} ${buyItems.length === 1 ? 'thing' : 'things'} to buy`
+    ? `${buyPending} ${buyPending === 1 ? 'item' : 'items'} to buy`
     : `${tabItems.length} ${tabItems.length === 1 ? 'item' : 'items'}`;
   const inventoryBody = (
     <>
@@ -619,7 +654,7 @@ function App() {
                   }}>
                     <span style={{ fontSize: 20 }}>{TOBUY.icon}</span>
                     <span style={{ flex: 1 }}>{TOBUY.label}</span>
-                    {buyItems.length > 0 && <span style={{ fontSize: 12.5, fontWeight: 700, color: on ? TOBUY.accentDark : NEUTRAL.onSurfaceVar, background: on ? '#ffffffaa' : NEUTRAL.surfaceDim, borderRadius: 20, padding: '2px 9px', minWidth: 20, textAlign: 'center' }}>{buyItems.length}</span>}
+                    {buyPending > 0 && <span style={{ fontSize: 12.5, fontWeight: 700, color: on ? TOBUY.accentDark : NEUTRAL.onSurfaceVar, background: on ? '#ffffffaa' : NEUTRAL.surfaceDim, borderRadius: 20, padding: '2px 9px', minWidth: 20, textAlign: 'center' }}>{buyPending}</span>}
                   </button>
                 );
               })()}

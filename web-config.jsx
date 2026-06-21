@@ -77,7 +77,7 @@ window.FIREBASE_CONFIG = {
   const auth = firebase.auth();
   const db = firebase.firestore();
   const col = () => db.collection('households').doc('home').collection('items');
-  const buyCol = () => db.collection('households').doc('home').collection('shopping');
+  const buyCol = () => db.collection('households').doc('home').collection('toBuy');
 
   // ── Authentication helpers (email + password) ──
   // Persistence is LOCAL by default: you stay signed in on this device until you
